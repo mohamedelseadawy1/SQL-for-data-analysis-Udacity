@@ -1,0 +1,72 @@
+/*
+Query 1 - query used for first insight (find out number of tracks per each genre)
+*/
+SELECT g.Name AS "GenreName" ,
+       count(*) AS "NumberOfTracks"
+FROM Track t
+JOIN Genre g ON g.GenreId = t.GenreId
+GROUP BY 1
+ORDER BY 2 DESC ;
+
+
+/*
+Query 2 - query used for second insight (find out the total amount earned per each genre)
+*/
+SELECT g.Name AS "GenreName" ,
+       sum(il.quantity * il.UnitPrice) AS "TotalAmountEarned"
+FROM genre g
+JOIN Track t ON t.GenreId = g.GenreId
+JOIN InvoiceLine il ON t.TrackId = il.TrackId
+GROUP BY 1
+ORDER BY 2 DESC ;
+
+
+/*
+Query 3 - query used for third insight (find out the number of tracks per each artist (TOP10) for the highest genre in number of tracks)
+*/ WITH t1 AS
+  (SELECT g.Name AS "GenreName" ,
+          count(*) AS "NumberOfTracks"
+   FROM Track t
+   JOIN Genre g ON g.GenreId = t.GenreId
+   GROUP BY 1
+   ORDER BY 2 DESC
+   LIMIT 1)
+SELECT ar.Name AS "ArtistName" ,
+       count(*) AS "NumberOfTracks"
+FROM Artist ar
+JOIN Album al ON ar.ArtistId = al.ArtistId
+JOIN Track tr ON al.AlbumId = tr.AlbumId
+JOIN Genre g ON g.GenreId = tr.GenreId
+WHERE g.Name =
+    (SELECT GenreName
+     FROM t1)
+GROUP BY 1
+ORDER BY 2 DESC ;
+
+
+/*
+Query 4 -find which customer (TOP10) spent the most on the top genre (which includes the largest number of tracks) according to the InvoiceLine table
+*/ WITH t1 AS
+  (SELECT g.Name AS "GenreName" ,
+          count(*) AS "NumberOfTracks"
+   FROM Track t
+   JOIN Genre g ON g.GenreId = t.GenreId
+   GROUP BY 1
+   ORDER BY 2 DESC
+   LIMIT 1)
+SELECT g.Name AS "GenreName",
+       c.CustomerId AS "CustomerId",
+       c.FirstName,
+       c.LastName,
+       sum(il.UnitPrice * il.Quantity) AS "AmountSpent"
+FROM genre g
+JOIN Track t ON t.GenreId = g.GenreId
+JOIN InvoiceLine il ON t.TrackId = il.TrackId
+JOIN Invoice i ON il.InvoiceId = i.InvoiceId
+JOIN Customer c ON i.CustomerId = c.CustomerId
+GROUP BY 1,
+         2
+HAVING g.Name =
+  (SELECT GenreName
+   FROM t1)
+ORDER BY 5 DESC ;
